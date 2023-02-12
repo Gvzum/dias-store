@@ -3,5 +3,5 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("First steps")
+	fmt.Print("Server is running!!!")
 }
