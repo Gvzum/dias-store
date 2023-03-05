@@ -26,22 +26,22 @@ package config
 // 		dbUser, dbPassword, dbHost, dbPort, dbName)
 
 // 	// Connect to the database
-// 	db, err := gorm.Open("mysql", dbURI)
+// 	database, err := gorm.Open("mysql", dbURI)
 // 	if err != nil {
 // 		log.Fatalf("failed to connect to database: %s", err)
 // 		return nil, err
 // 	}
 
 // 	// Set connection pool settings
-// 	db.DB().SetMaxIdleConns(10)
-// 	db.DB().SetMaxOpenConns(100)
+// 	database.DB().SetMaxIdleConns(10)
+// 	database.DB().SetMaxOpenConns(100)
 
 // 	// Return the database connection
-// 	return db, nil
+// 	return database, nil
 // }
 
 // // Migrate the database schema
-// func Migrate(db *gorm.DB) {
-// 	db.AutoMigrate(&models.User{})
+// func Migrate(database *gorm.DB) {
+// 	database.AutoMigrate(&models.User{})
 // 	// Add any other models you want to migrate here
 // }

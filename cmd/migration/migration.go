@@ -2,31 +2,24 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/Gvzum/dias-store.git/cmd/server/config"
+	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"log"
 )
 
 func main() {
-	if err := config.LoadEnv(); err != nil {
-		fmt.Printf("Failed to load env file: %s", err)
-	}
+	db := database.GetDB()
 
-	db, err := gorm.Open(postgres.Open(config.AppConfig.Database.DatabaseUrl()), &gorm.Config{})
-
-	if err != nil {
-		panic(err)
-	}
-
+	fmt.Println(db)
 	// Auto-migrate the models
-	db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Category{},
 		&models.Product{},
 		&models.Order{},
-	)
+	); err != nil {
+		log.Fatalf("Failed when migrating %s", err)
+	}
 
 	fmt.Println("Tables created.")
 }

@@ -10,7 +10,8 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	SERVER_PORT string `default:"8080"`
+	SERVER_PORT      string `default:"8080"`
+	TOKEN_SECRET_KEY string `default:"mysecret"`
 }
 
 type DatabaseConfig struct {
@@ -18,7 +19,7 @@ type DatabaseConfig struct {
 	DATABASE_PORT     string `default:"5432"`
 	DATABASE_USER     string `default:"user"`
 	DATABASE_PASSWORD string `default:"password"`
-	DATABASE_NAME     string `default:"db"`
+	DATABASE_NAME     string `default:"database"`
 }
 
 func (d *DatabaseConfig) DatabaseUrl() string {
