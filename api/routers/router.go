@@ -10,11 +10,10 @@ func NewRouter() *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	//productController := new(product.Controller)
-	userController := new(auth.Controller)
-
-	router.POST("/signup", userController.Login)
-	router.POST("/login")
+	// Auth handlers
+	authController := new(auth.Controller)
+	router.POST("/sign-up", authController.SignUpHandler)
+	router.POST("/sign-in", authController.SignInHandler)
 
 	return router
 }

@@ -10,7 +10,6 @@ import (
 func main() {
 	db := database.GetDB()
 
-	fmt.Println(db)
 	// Auto-migrate the models
 	if err := db.AutoMigrate(
 		&models.User{},

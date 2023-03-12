@@ -2,8 +2,8 @@ package config
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 	"log"
+	"os"
 )
 
 var AppConfig *Config
@@ -18,15 +18,15 @@ func LoadEnv() error {
 	}
 
 	DatabaseConfig := &DatabaseConfig{
-		DATABASE_HOST:     viper.GetString("DATABASE_HOST"),
-		DATABASE_PORT:     viper.GetString("DATABASE_PORT"),
-		DATABASE_USER:     viper.GetString("DATABASE_USER"),
-		DATABASE_PASSWORD: viper.GetString("DATABASE_PASSWORD"),
-		DATABASE_NAME:     viper.GetString("DATABASE_NAME"),
+		DATABASE_HOST:     os.Getenv("DATABASE_HOST"),
+		DATABASE_PORT:     os.Getenv("DATABASE_PORT"),
+		DATABASE_USER:     os.Getenv("DATABASE_USER"),
+		DATABASE_PASSWORD: os.Getenv("DATABASE_PASSWORD"),
+		DATABASE_NAME:     os.Getenv("DATABASE_NAME"),
 	}
 	ServerConfig := &ServerConfig{
-		SERVER_PORT:      viper.GetString("SERVER_PORT"),
-		TOKEN_SECRET_KEY: viper.GetString("TOKEN_SECRET_KEY"),
+		SERVER_PORT:      os.Getenv("SERVER_PORT"),
+		TOKEN_SECRET_KEY: os.Getenv("TOKEN_SECRET_KEY"),
 	}
 	AppConfig = &Config{
 		Database: *DatabaseConfig,
@@ -35,12 +35,3 @@ func LoadEnv() error {
 
 	return nil
 }
-
-//func viper.GetString(key string) string {
-//	//if value, exists := os.LookupEnv(key); exists {
-//	//	return value
-//	//}
-//	value, _ := os.LookupEnv(key)
-//
-//	return value
-//}

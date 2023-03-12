@@ -1,77 +1,91 @@
 package auth
 
 import (
-	"fmt"
+	"github.com/Gvzum/dias-store.git/api"
+	"github.com/Gvzum/dias-store.git/config"
+	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
-	"github.com/Gvzum/dias-store.git/internal/utils"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"net/http"
+	"time"
 )
+
+type authCustomClaims struct {
+	UserID string
+	jwt.StandardClaims
+}
 
 type Controller struct{}
 
-var userModel = new(models.User)
-
-func (u Controller) Create(c *gin.Context) {
-	var user UserAuthorization
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+func (c Controller) SignInHandler(ctx *gin.Context) {
+	var validatedUser UserSignIn
+	if err := ctx.ShouldBindJSON(&validatedUser); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	fmt.Print(user)
-
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
-
-}
-
-func (u Controller) Login(c *gin.Context) {
-	var user UserLogin
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	fmt.Println(user)
-}
-
-// registerHandler is a handler for user registration
-func registerHandler(c *gin.Context) {
-	// Parse request body
-	var user UserAuthorization
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	// Get user by email
+	user, err := api.GetUserByEmail(validatedUser.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(validatedUser.Password)); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid password.",
+		})
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &authCustomClaims{
+		user.Name,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+	})
+
+	// sign token with secret key and generate signed string
+	signedToken, err := token.SignedString([]byte(config.AppConfig.Server.TOKEN_SECRET_KEY))
+	if err != nil {
+		panic(err)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"token": signedToken})
+
+}
+
+func (c Controller) SignUpHandler(ctx *gin.Context) {
+	var validatedUser UserSignUp
+	if err := ctx.ShouldBindJSON(&validatedUser); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(validatedUser.Password), bcrypt.DefaultCost)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	user := models.User{Name: validatedUser.Name, Email: validatedUser.Email, Password: string(hashedPassword)}
 
 	// Create user
-	user.Password = string(hashedPassword)
-	db := c.MustGet("db").(*gorm.DB)
+	db := database.GetDB()
 	if err := db.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	// Generate JWT token
-	tokenString, err := utils.GenerateToken(user.Name)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate JWT token"})
-		return
-	}
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
+	})
 
-	// Return token
-	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }

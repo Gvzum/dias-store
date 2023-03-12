@@ -7,7 +7,7 @@ import (
 type User struct {
 	gorm.Model
 	Name     string
-	Email    string `gorm:"unique_index"`
+	Email    string `gorm:"unique;unique_index;not null"`
 	Password string
 	//Permissions []Permission `gorm:"many2many:user_permissions;" json:"permissions"`
 }
