@@ -1,11 +1,75 @@
 package product
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/Gvzum/dias-store.git/config/database"
+	"github.com/Gvzum/dias-store.git/internal/models"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
+)
 
 type Controller struct{}
 
-func (p Controller) Status(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "Pong",
+func (c Controller) CreateProduct(ctx *gin.Context) {
+	var validatedProduct CreateProductSchema
+	if err := ctx.ShouldBindJSON(&validatedProduct); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	db := database.GetDB()
+	var category models.Category
+	if err := db.First(&category, validatedProduct.CategoryID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		return
+	}
+
+	product := models.Product{
+		Name:        validatedProduct.Name,
+		Description: validatedProduct.Description,
+		Price:       validatedProduct.Price,
+		ImageURL:    validatedProduct.ImageURL,
+		CategoryID:  validatedProduct.CategoryID,
+	}
+
+	if err := db.Create(&product).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "Product successfully created",
 	})
+
+}
+
+func (c Controller) ListProduct(ctx *gin.Context) {
+	var products []DetailedProductSchema
+	db := database.GetDB()
+
+	result := db.
+		Table("products").
+		Select("products.*, categories.name as category_name").
+		Joins("LEFT JOIN categories ON categories.id = products.category_id")
+
+	if searchName := ctx.Query("name"); searchName != "" {
+		searchName = strings.ToLower(searchName)
+		result.Where("LOWER(products.name) LIKE ?", "%"+searchName+"%")
+	}
+
+	result = result.Scan(&products)
+	if result.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch products",
+		})
+		return
+	}
+
+	if products == nil {
+		products = []DetailedProductSchema{}
+	}
+
+	ctx.JSON(http.StatusOK, products)
 }
