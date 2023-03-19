@@ -1,10 +1,11 @@
 package category
 
 import (
-	"fmt"
 	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -21,11 +22,27 @@ func (c Controller) CreateCategory(ctx *gin.Context) {
 
 	db := database.GetDB()
 	var category models.Category
-	db.FirstOrCreate(&category, models.Category{Name: validatedCategory.Name})
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Category created successfully",
-	})
+	if err := db.Where("name = ?", validatedCategory.Name).First(&category).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			category.Name = validatedCategory.Name
+			db.Create(&category)
+
+			ctx.JSON(http.StatusCreated, gin.H{
+				"message": "Category created successfully",
+			})
+			return
+
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+		}
+	} else {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Category already exists",
+		})
+	}
 
 }
 
@@ -36,7 +53,11 @@ func (c Controller) ListCategory(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
 		return
 	}
-	fmt.Println(categories)
+
+	if categories == nil {
+		categories = []DetailedCategorySchema{}
+	}
+
 	ctx.JSON(http.StatusOK, categories)
 }
 
