@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/Gvzum/dias-store.git/api"
+	"github.com/Gvzum/dias-store.git/api/base"
 	"github.com/Gvzum/dias-store.git/config"
 	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
@@ -9,18 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strconv"
 	"time"
 )
-
-type authCustomClaims struct {
-	UserID string
-	jwt.StandardClaims
-}
 
 type Controller struct{}
 
 func (c Controller) SignInHandler(ctx *gin.Context) {
-	var validatedUser UserSignIn
+	var validatedUser UserSignInSchema
 	if err := ctx.ShouldBindJSON(&validatedUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -29,7 +25,7 @@ func (c Controller) SignInHandler(ctx *gin.Context) {
 	}
 
 	// Get user by email
-	user, err := api.GetUserByEmail(validatedUser.Email)
+	user, err := base.GetUserByEmail(validatedUser.Email)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -44,10 +40,10 @@ func (c Controller) SignInHandler(ctx *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &authCustomClaims{
-		user.Name,
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &base.AuthCustomClaims{
+		UserID: strconv.Itoa(int(user.ID)),
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 	})
@@ -63,7 +59,7 @@ func (c Controller) SignInHandler(ctx *gin.Context) {
 }
 
 func (c Controller) SignUpHandler(ctx *gin.Context) {
-	var validatedUser UserSignUp
+	var validatedUser UserSignUpSchema
 	if err := ctx.ShouldBindJSON(&validatedUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
