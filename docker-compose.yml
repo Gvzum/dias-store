@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: dias_store
+      POSTGRES_PASSWORD: dias2003
+      POSTGRES_DB: dias_store
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SERVER_PORT: 8080
+      TOKEN_SECRET_KEY: sometokensecret
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: dias_store
+      DATABASE_USER: dias_store
+      DATABASE_PASSWORD: dias2003
+
+volumes:
+  pgdata:
