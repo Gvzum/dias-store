@@ -10,4 +10,15 @@ type Product struct {
 	ImageURL    string  `binding:"null"`
 	CategoryID  uint
 	Category    Category
+	UserID      uint
+	User        User
+}
+
+type ProductRate struct {
+	gorm.Model
+	rate      int
+	UserID    uint
+	User      User
+	ProductID uint
+	Product   Product
 }

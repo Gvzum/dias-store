@@ -19,11 +19,12 @@ func NewRouter() *gin.Engine {
 		"/category",
 		middlewares.AuthenticationMiddleware(),
 		middlewares.ProtectionMiddleware(),
+		middlewares.IsSuperUserMiddleware(),
 	)
 	{
-		categoryRoutes.POST("/", categoryController.CreateCategory)
-		categoryRoutes.GET("/", categoryController.ListCategory)
 		categoryRoutes.GET("/:id", categoryController.DetailedCategory)
+		categoryRoutes.GET("/", categoryController.ListCategory)
+		categoryRoutes.POST("/", categoryController.CreateCategory)
 		categoryRoutes.DELETE("/:id", categoryController.DeleteCategory)
 		categoryRoutes.PUT("/:id", categoryController.UpdateCategory)
 	}
@@ -38,6 +39,7 @@ func NewRouter() *gin.Engine {
 	{
 		productRoutes.POST("/", productController.CreateProduct)
 		productRoutes.GET("/", productController.ListProduct)
+		productRoutes.GET("/:id", productController.DetailedProduct)
 	}
 
 	// Auth handlers

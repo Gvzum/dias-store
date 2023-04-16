@@ -12,8 +12,8 @@ import (
 type Controller struct{}
 
 func (c Controller) CreateCategory(ctx *gin.Context) {
-	var validatedCategory CreateCategorySchema
-	if err := ctx.ShouldBindJSON(&validatedCategory); err != nil {
+	var input CreateCategorySchema
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
@@ -23,9 +23,9 @@ func (c Controller) CreateCategory(ctx *gin.Context) {
 	db := database.GetDB()
 	var category models.Category
 
-	if err := db.Where("name = ?", validatedCategory.Name).First(&category).Error; err != nil {
+	if err := db.Where("name = ?", input.Name).First(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			category.Name = validatedCategory.Name
+			category.Name = input.Name
 			db.Create(&category)
 
 			ctx.JSON(http.StatusCreated, gin.H{

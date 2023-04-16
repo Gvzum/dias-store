@@ -26,12 +26,15 @@ func (c Controller) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
+	user, _ := ctx.Value("user").(*models.User)
+
 	product := models.Product{
 		Name:        validatedProduct.Name,
 		Description: validatedProduct.Description,
 		Price:       validatedProduct.Price,
 		ImageURL:    validatedProduct.ImageURL,
 		CategoryID:  validatedProduct.CategoryID,
+		UserID:      user.ID,
 	}
 
 	if err := db.Create(&product).Error; err != nil {
@@ -72,4 +75,20 @@ func (c Controller) ListProduct(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, products)
+}
+
+func (c Controller) DetailedProduct(ctx *gin.Context) {
+	var product DetailedProductSchema
+	db := database.GetDB()
+
+	result := db.Model(&models.Product{}).Select("id, name").First(&product, ctx.Param("id")).Scan(&product)
+	if result.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to fetch products",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, product)
+
 }

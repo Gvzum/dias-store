@@ -3,6 +3,7 @@ package middlewares
 import (
 	"github.com/Gvzum/dias-store.git/api/base"
 	"github.com/Gvzum/dias-store.git/config"
+	"github.com/Gvzum/dias-store.git/internal/models"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -53,14 +54,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 
 func ProtectionMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		userID, ok := ctx.Get("user_id")
-		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": "Internal server error",
-			})
-			return
-		}
-
+		userID, _ := ctx.Get("user_id")
 		userIDString, ok := userID.(string)
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -69,11 +63,27 @@ func ProtectionMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if _, err := base.GetUserByID(userIDString); err != nil {
+		user, err := base.GetUserByID(userIDString)
+
+		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Unauthorized",
 			})
 			return
+		}
+
+		ctx.Set("user", user)
+		ctx.Next()
+	}
+}
+
+func IsSuperUserMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		user, _ := ctx.Value("user").(*models.User)
+		if ctx.Request.Method != http.MethodGet && user.IsSuperUser == false {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "You don't have enough permission",
+			})
 		}
 
 		ctx.Next()
