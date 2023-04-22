@@ -4,6 +4,7 @@ import (
 	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 )
@@ -78,17 +79,21 @@ func (c Controller) ListProduct(ctx *gin.Context) {
 }
 
 func (c Controller) DetailedProduct(ctx *gin.Context) {
-	var product DetailedProductSchema
-	db := database.GetDB()
-
-	result := db.Model(&models.Product{}).Select("id, name").First(&product, ctx.Param("id")).Scan(&product)
-	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to fetch products",
+	product, err := c.getProductByID(ctx.Param("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch product",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, product)
+	var detailedProduct DetailedProductSchema
+	if err := mapstructure.Decode(product, &detailedProduct); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to decode product",
+		})
+		return
+	}
 
+	ctx.JSON(http.StatusOK, detailedProduct)
 }
