@@ -16,7 +16,7 @@ func NewRouter() *gin.Engine {
 	// Category handlers
 	categoryController := new(category.Controller)
 	categoryRoutes := router.Group(
-		"/category",
+		"api/category",
 		middlewares.AuthenticationMiddleware(),
 		middlewares.ProtectionMiddleware(),
 		middlewares.IsSuperUserMiddleware(),
@@ -32,7 +32,7 @@ func NewRouter() *gin.Engine {
 	// Product handlers
 	productController := new(product.Controller)
 	productRoutes := router.Group(
-		"/product",
+		"api/product",
 		middlewares.AuthenticationMiddleware(),
 		middlewares.ProtectionMiddleware(),
 	)
@@ -40,12 +40,14 @@ func NewRouter() *gin.Engine {
 		productRoutes.POST("/", productController.CreateProduct)
 		productRoutes.GET("/", productController.ListProduct)
 		productRoutes.GET("/:id", productController.DetailedProduct)
-		productRoutes.POST("/:id/rate", productController.RateProduct)
+		productRoutes.POST("/:id/rate", productController.CreateRateProduct)
+		productRoutes.PUT("/:id/rate", productController.UpdateRateProduct)
+		productRoutes.DELETE("/:id/rate", productController.DeleteRateProduct)
 	}
 
 	// Auth handlers
 	authController := new(auth.Controller)
-	authRoutes := router.Group("/auth")
+	authRoutes := router.Group("api/auth")
 	{
 		authRoutes.POST("/sign-up", authController.SignUpHandler)
 		authRoutes.POST("/sign-in", authController.SignInHandler)

@@ -36,7 +36,7 @@ func getProductByID(id uint) (*DetailedProductSchema, error) {
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	detailedProduct.Rate = getRateProduct(db, &detailedProduct)
+	detailedProduct.Rate = getCalculatedRate(db, &detailedProduct)
 	return &detailedProduct, nil
 }
 
@@ -77,7 +77,7 @@ func isProductOwner(rateProductSchema RateProductSchema, user *models.User) bool
 	return false
 }
 
-func getRateProduct(db *gorm.DB, product *DetailedProductSchema) float64 {
+func getCalculatedRate(db *gorm.DB, product *DetailedProductSchema) float64 {
 	var sum float64
 	var count int64
 	result := db.Table("product_rates").
@@ -87,20 +87,41 @@ func getRateProduct(db *gorm.DB, product *DetailedProductSchema) float64 {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	//return sum / float64(count)
-	//return strconv.FormatFloat(10.900, 'f', -1, 64)
 	return math.Round((sum/float64(count))*100) / 100
 }
 
-func createRateProduct(rateProductSchema RateProductSchema, user *models.User) (*models.ProductRate, error) {
-	isProductOwner := isProductOwner(rateProductSchema, user)
+func getRateProduct(productID uint, userID uint) (*models.ProductRate, error) {
+	var productRate models.ProductRate
+	db := database.GetDB()
+
+	result := db.Where("user_id = ? AND product_id = ?", userID, productID).Last(&productRate)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &productRate, nil
+}
+
+//func getRateProductByID(productID uint, UserID uint) (*models.ProductRate, error) {
+//	var productRate models.ProductRate
+//	db := database.GetDB()
+//
+//	result := db.Where("id = ?", productID).First(&productRate)
+//}
+
+func createRateProduct(schema RateProductSchema, user *models.User) (*models.ProductRate, error) {
+	isProductOwner := isProductOwner(schema, user)
 	if isProductOwner {
 		return nil, errors.New("owner is not allowed to rate own products")
 	}
+
+	if product, _ := getRateProduct(schema.ProductID, user.ID); product != nil {
+		return nil, errors.New("already rated product")
+	}
+
 	db := database.GetDB()
 	rateProduct := models.ProductRate{
-		Rate:      rateProductSchema.Rate,
-		ProductID: rateProductSchema.ProductID,
+		Rate:      schema.Rate,
+		ProductID: schema.ProductID,
 		UserID:    user.ID,
 	}
 	result := db.Create(&rateProduct)
@@ -108,4 +129,33 @@ func createRateProduct(rateProductSchema RateProductSchema, user *models.User) (
 		return nil, result.Error
 	}
 	return &rateProduct, nil
+}
+
+func updateRateProduct(schema RateProductSchema, user *models.User) (*models.ProductRate, error) {
+	productRate, err := getRateProduct(schema.ProductID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	productRate.Rate = schema.Rate
+	db := database.GetDB()
+	if err := db.Save(&productRate).Error; err != nil {
+		return nil, err
+	}
+	return productRate, nil
+}
+
+func deleteRateProduct(productID uint, user *models.User) error {
+	productRate, err := getRateProduct(productID, user.ID)
+	if err != nil {
+		return err
+	}
+	if productRate.UserID == user.ID || user.IsSuperUser {
+		db := database.GetDB()
+		if err := db.Delete(&productRate).Error; err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return errors.New("doesn't have permission to delete")
 }
