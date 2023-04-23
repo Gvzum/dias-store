@@ -24,3 +24,14 @@ func GetUserByID(id string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func GetCategoryByID(id uint) (*models.Category, error) {
+	category := models.Category{}
+	db := database.GetDB()
+	result := db.Where("id = ?", id).First(&category)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &category, nil
+}

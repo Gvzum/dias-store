@@ -1,17 +1,18 @@
 package product
 
 import (
-	"github.com/Gvzum/dias-store.git/config/database"
+	"fmt"
+	"github.com/Gvzum/dias-store.git/api/base"
 	"github.com/Gvzum/dias-store.git/internal/models"
 	"github.com/gin-gonic/gin"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
-	"strings"
 )
 
 type Controller struct{}
 
 func (c Controller) CreateProduct(ctx *gin.Context) {
+	user, _ := ctx.Value("user").(*models.User)
+
 	var validatedProduct CreateProductSchema
 	if err := ctx.ShouldBindJSON(&validatedProduct); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -20,27 +21,16 @@ func (c Controller) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	var category models.Category
-	if err := db.First(&category, validatedProduct.CategoryID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
-		return
+	if _, err := base.GetCategoryByID(validatedProduct.CategoryID); err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": "Category not found",
+		})
 	}
 
-	user, _ := ctx.Value("user").(*models.User)
-
-	product := models.Product{
-		Name:        validatedProduct.Name,
-		Description: validatedProduct.Description,
-		Price:       validatedProduct.Price,
-		ImageURL:    validatedProduct.ImageURL,
-		CategoryID:  validatedProduct.CategoryID,
-		UserID:      user.ID,
-	}
-
-	if err := db.Create(&product).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if _, err := createProduct(validatedProduct, user); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
@@ -50,50 +40,35 @@ func (c Controller) CreateProduct(ctx *gin.Context) {
 }
 
 func (c Controller) ListProduct(ctx *gin.Context) {
-	var products []DetailedProductSchema
-	db := database.GetDB()
+	products, err := getListOfProduct(ctx.Query("name"))
 
-	result := db.
-		Table("products").
-		Select("products.*, categories.name as category_name").
-		Joins("LEFT JOIN categories ON categories.id = products.category_id")
-
-	if searchName := ctx.Query("name"); searchName != "" {
-		searchName = strings.ToLower(searchName)
-		result.Where("LOWER(products.name) LIKE ?", "%"+searchName+"%")
-	}
-
-	result = result.Scan(&products)
-	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to fetch products",
-		})
-		return
-	}
-
-	if products == nil {
-		products = []DetailedProductSchema{}
-	}
-
-	ctx.JSON(http.StatusOK, products)
-}
-
-func (c Controller) DetailedProduct(ctx *gin.Context) {
-	product, err := c.getProductByID(ctx.Param("id"))
 	if err != nil {
+		fmt.Println(err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch product",
 		})
 		return
 	}
 
-	var detailedProduct DetailedProductSchema
-	if err := mapstructure.Decode(product, &detailedProduct); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to decode product",
+	ctx.JSON(http.StatusOK, products)
+}
+
+func (c Controller) DetailedProduct(ctx *gin.Context) {
+	productId := ctx.Param("id")
+	if productId == "" {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "ID of product doesn't provided",
+		})
+	}
+
+	product, err := getProductByID(ctx.Param("id"))
+	if err != nil {
+		fmt.Println(err)
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error": "Doesn't have this product",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, detailedProduct)
+	ctx.JSON(http.StatusOK, product)
 }
