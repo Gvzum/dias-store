@@ -6,6 +6,7 @@ import (
 	"github.com/Gvzum/dias-store.git/internal/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type Controller struct{}
@@ -61,7 +62,15 @@ func (c Controller) DetailedProduct(ctx *gin.Context) {
 		})
 	}
 
-	product, err := getProductByID(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 0)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong",
+		})
+	}
+
+	product, err := getProductByID(uint(id))
 	if err != nil {
 		fmt.Println(err)
 		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -71,4 +80,27 @@ func (c Controller) DetailedProduct(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, product)
+}
+
+// Product Rate Endpoints
+
+func (c Controller) RateProduct(ctx *gin.Context) {
+	user, _ := ctx.Value("user").(*models.User)
+	var rateProduct RateProductSchema
+	if err := ctx.ShouldBindJSON(&rateProduct); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	if _, err := createRateProduct(rateProduct, user); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "Product rated successfully",
+	})
 }

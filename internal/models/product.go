@@ -16,9 +16,9 @@ type Product struct {
 
 type ProductRate struct {
 	gorm.Model
-	rate      int
-	UserID    uint
+	Rate      float64 `binding:"required"`
+	UserID    uint    `binding:"required"`
 	User      User
-	ProductID uint
+	ProductID uint `binding:"required"`
 	Product   Product
 }

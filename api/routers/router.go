@@ -40,6 +40,7 @@ func NewRouter() *gin.Engine {
 		productRoutes.POST("/", productController.CreateProduct)
 		productRoutes.GET("/", productController.ListProduct)
 		productRoutes.GET("/:id", productController.DetailedProduct)
+		productRoutes.POST("/:id/rate", productController.RateProduct)
 	}
 
 	// Auth handlers
