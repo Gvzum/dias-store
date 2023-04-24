@@ -40,9 +40,32 @@ func NewRouter() *gin.Engine {
 		productRoutes.POST("/", productController.CreateProduct)
 		productRoutes.GET("/", productController.ListProduct)
 		productRoutes.GET("/:id", productController.DetailedProduct)
-		productRoutes.POST("/:id/rate", productController.CreateRateProduct)
-		productRoutes.PUT("/:id/rate", productController.UpdateRateProduct)
-		productRoutes.DELETE("/:id/rate", productController.DeleteRateProduct)
+	}
+
+	// Product Rate handlers
+	rateProductController := router.Group(
+		"api/product",
+		middlewares.AuthenticationMiddleware(),
+		middlewares.ProtectionMiddleware(),
+	)
+	{
+		rateProductController.POST("/:id/rate", productController.CreateRateProduct)
+		rateProductController.PUT("/:id/rate", productController.UpdateRateProduct)
+		rateProductController.DELETE("/:id/rate", productController.DeleteRateProduct)
+	}
+
+	// Product Comment handlers
+	commentProductController := router.Group(
+		"api/product",
+		middlewares.AuthenticationMiddleware(),
+		middlewares.ProtectionMiddleware(),
+	)
+	{
+		commentProductController.GET("/:id/comment", productController.ListComments)
+		commentProductController.POST("/:id/comment", productController.CreateComment)
+		commentProductController.PUT("/:id/comment/:comment_id", productController.UpdateComment)
+		commentProductController.GET("/:id/comment/:comment_id", productController.DetailedComment)
+		commentProductController.DELETE("/:id/comment/:comment_id", productController.DeleteComment)
 	}
 
 	// Auth handlers

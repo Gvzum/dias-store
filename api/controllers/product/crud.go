@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// Product crud
+
 func createProduct(productData CreateProductSchema, user *models.User) (*models.Product, error) {
 	db := database.GetDB()
 
@@ -77,17 +79,22 @@ func isProductOwner(rateProductSchema RateProductSchema, user *models.User) bool
 	return false
 }
 
+// Product Rate crud
+
 func getCalculatedRate(db *gorm.DB, product *DetailedProductSchema) float64 {
 	var sum float64
 	var count int64
 	result := db.Table("product_rates").
 		Select("SUM(rate) as sum, COUNT(*) as count").
-		Where("product_id = ?", product.ID).Row()
+		Where("product_id = ? AND deleted_at IS NULL", product.ID).Row()
 	err := result.Scan(&sum, &count)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	return math.Round((sum/float64(count))*100) / 100
+	if count != 0 {
+		return math.Round((sum/float64(count))*100) / 100
+	}
+	return 0.0
 }
 
 func getRateProduct(productID uint, userID uint) (*models.ProductRate, error) {
@@ -100,13 +107,6 @@ func getRateProduct(productID uint, userID uint) (*models.ProductRate, error) {
 	}
 	return &productRate, nil
 }
-
-//func getRateProductByID(productID uint, UserID uint) (*models.ProductRate, error) {
-//	var productRate models.ProductRate
-//	db := database.GetDB()
-//
-//	result := db.Where("id = ?", productID).First(&productRate)
-//}
 
 func createRateProduct(schema RateProductSchema, user *models.User) (*models.ProductRate, error) {
 	isProductOwner := isProductOwner(schema, user)
@@ -136,6 +136,11 @@ func updateRateProduct(schema RateProductSchema, user *models.User) (*models.Pro
 	if err != nil {
 		return nil, err
 	}
+	if productRate.UserID != user.ID {
+		if !user.IsSuperUser {
+			return nil, errors.New("user doesn't have a permission")
+		}
+	}
 	productRate.Rate = schema.Rate
 	db := database.GetDB()
 	if err := db.Save(&productRate).Error; err != nil {
@@ -149,13 +154,96 @@ func deleteRateProduct(productID uint, user *models.User) error {
 	if err != nil {
 		return err
 	}
-	if productRate.UserID == user.ID || user.IsSuperUser {
-		db := database.GetDB()
-		if err := db.Delete(&productRate).Error; err != nil {
-			return err
+	if productRate.UserID != user.ID {
+		if !user.IsSuperUser {
+			return errors.New("doesn't have permission to delete")
 		}
-		return nil
 	}
+	db := database.GetDB()
+	if err := db.Delete(&productRate).Error; err != nil {
+		return err
+	}
+	return nil
+}
 
-	return errors.New("doesn't have permission to delete")
+// Comment crud
+
+func getCommentByID(id uint) (*models.Comment, error) {
+	var comment models.Comment
+	db := database.GetDB()
+	if err := db.Where("id = ?", id).First(&comment).Error; err != nil {
+		return nil, err
+	}
+	return &comment, nil
+}
+
+func createComment(schema CommentProductSchema, user *models.User) (*models.Comment, error) {
+	db := database.GetDB()
+	comment := &models.Comment{
+		ProductID: schema.ProductID,
+		UserID:    user.ID,
+		Message:   schema.Message,
+	}
+	result := db.Create(&comment)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return comment, nil
+}
+
+func updateComment(commentID uint, user *models.User, message string) (*models.Comment, error) {
+	comment, err := getCommentByID(commentID)
+	if err != nil {
+		return nil, err
+	}
+	if comment.UserID != user.ID {
+		if !user.IsSuperUser {
+			return nil, errors.New("doesn't have permission to update comment")
+		}
+	}
+	db := database.GetDB()
+	comment.Message = message
+	if err := db.Save(&comment).Error; err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+func listComments(productID uint) ([]UserCommentSchema, error) {
+	db := database.GetDB()
+	var comments []UserCommentSchema
+	if err := db.
+		Model(&models.Comment{}).
+		Select("id, message, user_id").
+		Where("product_id = ?", productID).Find(&comments).Error; err != nil {
+		return nil, err
+	}
+	return comments, nil
+}
+
+func detailedComment(commentID uint) (*BaseCommentSchema, error) {
+	db := database.GetDB()
+	var comment BaseCommentSchema
+	result := db.First(&models.Comment{}, commentID).Scan(&comment)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &comment, nil
+}
+
+func deleteComment(commentID uint, user *models.User) error {
+	comment, err := getCommentByID(commentID)
+	if err != nil {
+		return err
+	}
+	if comment.UserID != user.ID {
+		if !user.IsSuperUser {
+			return errors.New("doesn't have permission to delete")
+		}
+	}
+	db := database.GetDB()
+	if err := db.Delete(&comment).Error; err != nil {
+		return err
+	}
+	return nil
 }

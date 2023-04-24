@@ -1,7 +1,5 @@
 package product
 
-import "github.com/go-playground/validator/v10"
-
 type CreateProductSchema struct {
 	Name        string  `json:"name" binding:"required"`
 	Description string  `json:"description"`
@@ -31,7 +29,18 @@ type RateProductSchema struct {
 	Rate      float64 `json:"rate" binding:"required,gte=0,lte=10"`
 }
 
-func (r *RateProductSchema) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
+type BaseCommentSchema struct {
+	Message string `json:"message" binding:"required"`
+}
+
+type UserCommentSchema struct {
+	BaseCommentSchema
+	ID     string `json:"id" binding:"require"`
+	UserID uint   `json:"user_id" binding:"required"`
+}
+
+type CommentProductSchema struct {
+	BaseCommentSchema
+	ProductID uint `json:"product_id"`
+	//Message   string `json:"message" binding:"required"`
 }
