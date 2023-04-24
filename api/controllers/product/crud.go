@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/Gvzum/dias-store.git/config/database"
 	"github.com/Gvzum/dias-store.git/internal/models"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"math"
+	"strconv"
 	"strings"
 )
 
@@ -42,16 +44,29 @@ func getProductByID(id uint) (*DetailedProductSchema, error) {
 	return &detailedProduct, nil
 }
 
-func getListOfProduct(searchName string) ([]ListProductSchema, error) {
+func getListOfProduct(ctx *gin.Context) ([]ListProductSchema, error) {
 	db := database.GetDB()
 
 	result := db.Table("products").
-		Select("products.*, categories.name as category_name").
-		Joins("LEFT JOIN categories ON categories.id = products.category_id")
+		Select("products.*, categories.name as category_name, COALESCE(SUM(product_rates.rate), 0)/NULLIF(COUNT(product_rates.id), 0) as average_rating").
+		Joins("LEFT JOIN categories ON categories.id = products.category_id").
+		Joins("LEFT JOIN product_rates ON products.id = product_rates.product_id").
+		Group("products.id, categories.id")
 
-	if searchName != "" {
+	if searchName := ctx.Query("name"); searchName != "" {
 		searchName = strings.ToLower(searchName)
 		result.Where("LOWER(products.name) LIKE ?", "%"+searchName+"%")
+	}
+	if minPrice, err := strconv.ParseFloat(ctx.Query("min_price"), 64); err == nil {
+		result.Where("products.price >= ?", minPrice)
+	}
+
+	if maxPrice, err := strconv.ParseFloat(ctx.Query("max_price"), 64); err == nil {
+		result.Where("products.price <= ?", maxPrice)
+	}
+
+	if minRate, err := strconv.ParseFloat(ctx.Query("min_rate"), 64); err == nil {
+		result.Having("COALESCE(SUM(product_rates.rate), 0)/NULLIF(COUNT(product_rates.id), 0) >= ?", minRate)
 	}
 
 	var products []ListProductSchema

@@ -8,20 +8,20 @@ type CreateProductSchema struct {
 	CategoryID  uint    `json:"category_id" binding:"required"`
 }
 
+type ListProductSchema struct {
+	ID            uint    `json:"id"`
+	Name          string  `json:"name"`
+	Price         float64 `json:"price"`
+	AverageRating float64 `json:"average_rating"`
+}
+
 type DetailedProductSchema struct {
-	ID           uint    `json:"id"`
-	Name         string  `json:"name"`
+	ListProductSchema
 	Description  string  `json:"description"`
-	Price        float64 `json:"price"`
 	ImageURL     string  `json:"image_url"`
 	CategoryName string  `json:"category_name"`
 	UserID       uint    `json:"user_id"`
 	Rate         float64 `json:"rate"`
-}
-
-type ListProductSchema struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
 }
 
 type RateProductSchema struct {

@@ -43,10 +43,9 @@ func (c Controller) CreateProduct(ctx *gin.Context) {
 }
 
 func (c Controller) ListProduct(ctx *gin.Context) {
-	products, err := getListOfProduct(ctx.Query("name"))
+	products, err := getListOfProduct(ctx)
 
 	if err != nil {
-		fmt.Println(err)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch product",
 		})
