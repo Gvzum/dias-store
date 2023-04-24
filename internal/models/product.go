@@ -22,3 +22,12 @@ type ProductRate struct {
 	ProductID uint `binding:"required"`
 	Product   Product
 }
+
+type Comment struct {
+	gorm.Model
+	Message   string `binding:"required"`
+	UserID    uint   `binding:"required"`
+	User      User
+	ProductID uint `binding:"required"`
+	Product   Product
+}

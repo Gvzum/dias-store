@@ -17,6 +17,7 @@ func main() {
 		&models.Product{},
 		&models.Order{},
 		&models.ProductRate{},
+		&models.Comment{},
 	); err != nil {
 		log.Fatalf("Failed when migrating %s", err)
 	}
