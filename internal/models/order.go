@@ -4,11 +4,15 @@ import "gorm.io/gorm"
 
 type Order struct {
 	gorm.Model
-	UserID     uint
-	User       User
-	ProductID  uint
-	Product    Product
-	Quantity   int
-	TotalPrice float64
-	Status     string
+	UserID uint
+	User   User
+}
+
+type OrderItem struct {
+	gorm.Model
+	OrderID   uint
+	Order     Order
+	ProductID uint
+	Product   Product
+	Quantity  int
 }

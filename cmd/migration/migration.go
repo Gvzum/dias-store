@@ -16,6 +16,7 @@ func main() {
 		&models.Category{},
 		&models.Product{},
 		&models.Order{},
+		&models.OrderItem{},
 		&models.ProductRate{},
 		&models.Comment{},
 	); err != nil {

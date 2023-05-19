@@ -42,5 +42,4 @@ type UserCommentSchema struct {
 type CommentProductSchema struct {
 	BaseCommentSchema
 	ProductID uint `json:"product_id"`
-	//Message   string `json:"message" binding:"required"`
 }

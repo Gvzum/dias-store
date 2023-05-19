@@ -3,6 +3,7 @@ package routers
 import (
 	"github.com/Gvzum/dias-store.git/api/controllers/auth"
 	"github.com/Gvzum/dias-store.git/api/controllers/category"
+	"github.com/Gvzum/dias-store.git/api/controllers/order"
 	"github.com/Gvzum/dias-store.git/api/controllers/product"
 	"github.com/Gvzum/dias-store.git/api/middlewares"
 	"github.com/gin-gonic/gin"
@@ -66,6 +67,17 @@ func NewRouter() *gin.Engine {
 		commentProductController.PUT("/:id/comment/:comment_id", productController.UpdateComment)
 		commentProductController.GET("/:id/comment/:comment_id", productController.DetailedComment)
 		commentProductController.DELETE("/:id/comment/:comment_id", productController.DeleteComment)
+	}
+
+	// Order Handlers
+	orderHandler := new(order.Controller)
+	orderController := router.Group(
+		"api/order",
+		middlewares.AuthenticationMiddleware(),
+		middlewares.ProtectionMiddleware(),
+	)
+	{
+		orderController.POST("/", orderHandler.CreateOrder)
 	}
 
 	// Auth handlers
