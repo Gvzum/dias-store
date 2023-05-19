@@ -33,16 +33,16 @@ func createProduct(productData CreateProductSchema, user *models.User) (*models.
 }
 
 func deleteProduct(productID uint, user *models.User) error {
-	product, err := getProductByID(productID)
+	productSchema, err := getProductByID(productID)
 	if err != nil {
 		return err
 	}
-	if product.UserID != user.ID && !user.IsSuperUser {
+	if productSchema.UserID != user.ID && !user.IsSuperUser {
 		return errors.New("don't have permission to delete")
 	}
 	db := database.GetDB()
-
-	if err := db.Delete(product).Error; err != nil {
+	var product models.Product
+	if err := db.Delete(&product, productSchema.ID).Error; err != nil {
 		return err
 	}
 
@@ -68,6 +68,7 @@ func getListOfProduct(ctx *gin.Context) ([]ListProductSchema, error) {
 		Select("products.*, categories.name as category_name, COALESCE(SUM(product_rates.rate), 0)/NULLIF(COUNT(product_rates.id), 0) as average_rating").
 		Joins("LEFT JOIN categories ON categories.id = products.category_id").
 		Joins("LEFT JOIN product_rates ON products.id = product_rates.product_id").
+		Where("products.deleted_at IS NULL").
 		Group("products.id, categories.id")
 
 	if searchName := ctx.Query("name"); searchName != "" {
