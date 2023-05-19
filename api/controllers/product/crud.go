@@ -32,6 +32,23 @@ func createProduct(productData CreateProductSchema, user *models.User) (*models.
 	return &product, nil
 }
 
+func deleteProduct(productID uint, user *models.User) error {
+	product, err := getProductByID(productID)
+	if err != nil {
+		return err
+	}
+	if product.UserID != user.ID && !user.IsSuperUser {
+		return errors.New("don't have permission to delete")
+	}
+	db := database.GetDB()
+
+	if err := db.Delete(product).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getProductByID(id uint) (*DetailedProductSchema, error) {
 	db := database.GetDB()
 

@@ -43,7 +43,7 @@ func (c Controller) SignInHandler(ctx *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &base.AuthCustomClaims{
 		UserID: strconv.Itoa(int(user.ID)),
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 5).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 	})

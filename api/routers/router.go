@@ -41,6 +41,7 @@ func NewRouter() *gin.Engine {
 		productRoutes.POST("/", productController.CreateProduct)
 		productRoutes.GET("/", productController.ListProduct)
 		productRoutes.GET("/:id", productController.DetailedProduct)
+		productRoutes.DELETE("/:id", productController.DeleteProduct)
 	}
 
 	// Product Rate handlers

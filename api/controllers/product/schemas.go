@@ -10,6 +10,7 @@ type CreateProductSchema struct {
 
 type ListProductSchema struct {
 	ID            uint    `json:"id"`
+	UserID        uint    `json:"user_id" binding:"required"`
 	Name          string  `json:"name"`
 	Price         float64 `json:"price"`
 	AverageRating float64 `json:"average_rating"`

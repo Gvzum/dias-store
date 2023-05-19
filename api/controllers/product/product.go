@@ -83,3 +83,33 @@ func (c Controller) DetailedProduct(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, product)
 }
+
+func (c Controller) DeleteProduct(ctx *gin.Context) {
+	user, _ := ctx.Value("user").(*models.User)
+
+	productId := ctx.Param("id")
+	if productId == "" {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "ID of product doesn't provided",
+		})
+	}
+
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 0)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong",
+		})
+		return
+	}
+	if err := deleteProduct(uint(id), user); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "product deleted successfully",
+	})
+}
